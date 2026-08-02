@@ -13,12 +13,11 @@ const getAllCakes = async (req, res) => {
         is_available,
         categories (name),
         cake_sizes (weight_label, price)
-      `)
-      .eq('is_available', true);
+      `);
+      // Note: no .eq('is_available', true) filter anymore — we show all cakes now
 
     if (error) throw error;
 
-    // Transform into the shape frontend components expect
     const shaped = data.map((cake) => {
       const pastry = cake.cake_sizes.find((s) => s.weight_label === 'Pastry');
       const halfKg = cake.cake_sizes.find((s) => s.weight_label === '0.5kg');
@@ -33,6 +32,7 @@ const getAllCakes = async (req, res) => {
         pricePastry: pastry?.price || 0,
         priceHalfKg: halfKg?.price || 0,
         priceOneKg: oneKg?.price || 0,
+        isOutOfStock: !cake.is_available,
       };
     });
 

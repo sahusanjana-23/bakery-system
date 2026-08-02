@@ -12,7 +12,7 @@ export default function AdminDashboardModal({ isOpen, onClose }) {
 
   // Edit Price State
   const [editingCakeId, setEditingCakeId] = useState(null);
-  const [newPrice, setNewPrice] = useState('');
+  const [editPrices, setEditPrices] = useState({ pastry: '', halfKg: '', oneKg: '' });
 
   useEffect(() => {
     if (isOpen && isAuthenticated) {
@@ -49,7 +49,6 @@ export default function AdminDashboardModal({ isOpen, onClose }) {
     e.preventDefault();
     setErrorMsg('');
 
-    // Try fetching cakes with the entered key — if it works, key is valid
     try {
       const res = await fetch(`${API_BASE_URL}/api/admin/cakes`, {
         headers: { 'x-admin-key': adminKey },
@@ -73,7 +72,6 @@ export default function AdminDashboardModal({ isOpen, onClose }) {
 
     const newStockStatus = !targetCake.isOutOfStock;
 
-    // UI update immediately
     setCakes((prev) =>
       prev.map((c) => (c.id === id ? { ...c, isOutOfStock: newStockStatus } : c))
     );
@@ -94,16 +92,28 @@ export default function AdminDashboardModal({ isOpen, onClose }) {
     }
   };
 
-  const savePrice = async (id) => {
-    if (!newPrice || isNaN(newPrice)) return;
-    const priceNumber = Number(newPrice);
+  const startEditing = (cake) => {
+    setEditingCakeId(cake.id);
+    setEditPrices({
+      pastry: cake.pricePastry,
+      halfKg: cake.priceHalfKg,
+      oneKg: cake.priceOneKg,
+    });
+  };
+
+  const savePrices = async (id) => {
+    const { pastry, halfKg, oneKg } = editPrices;
+    if ([pastry, halfKg, oneKg].some((p) => p === '' || isNaN(p))) return;
+
+    const pricePastry = Number(pastry);
+    const priceHalfKg = Number(halfKg);
+    const priceOneKg = Number(oneKg);
 
     setCakes((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, priceHalfKg: priceNumber } : c))
+      prev.map((c) => (c.id === id ? { ...c, pricePastry, priceHalfKg, priceOneKg } : c))
     );
 
     setEditingCakeId(null);
-    setNewPrice('');
 
     try {
       const res = await fetch(`${API_BASE_URL}/api/admin/cakes/${id}/price`, {
@@ -112,7 +122,7 @@ export default function AdminDashboardModal({ isOpen, onClose }) {
           'Content-Type': 'application/json',
           'x-admin-key': adminKey,
         },
-        body: JSON.stringify({ price: priceNumber }),
+        body: JSON.stringify({ pricePastry, priceHalfKg, priceOneKg }),
       });
       const result = await res.json();
       if (!result.success) console.error('Price update failed:', result.message);
@@ -123,7 +133,7 @@ export default function AdminDashboardModal({ isOpen, onClose }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-      <div className="bg-[#180B07] border border-amber-900/50 rounded-3xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl text-amber-100 overflow-hidden">
+      <div className="bg-[#180B07] border border-amber-900/50 rounded-3xl w-full max-w-5xl max-h-[90vh] flex flex-col shadow-2xl text-amber-100 overflow-hidden">
         
         {/* Header */}
         <div className="p-5 border-b border-amber-900/40 flex items-center justify-between bg-[#120805]">
@@ -145,7 +155,6 @@ export default function AdminDashboardModal({ isOpen, onClose }) {
           </button>
         </div>
 
-        {/* Content Body */}
         {!isAuthenticated ? (
           <div className="p-8 sm:p-12 text-center max-w-sm mx-auto my-auto w-full">
             <div className="w-12 h-12 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex items-center justify-center text-amber-400 mx-auto mb-4">
@@ -174,7 +183,6 @@ export default function AdminDashboardModal({ isOpen, onClose }) {
         ) : (
           <div className="flex-1 overflow-y-auto p-6 space-y-6">
             
-            {/* Quick Metrics Bar */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="bg-[#22120C] border border-amber-900/40 p-4 rounded-2xl flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
@@ -211,7 +219,6 @@ export default function AdminDashboardModal({ isOpen, onClose }) {
               </div>
             </div>
 
-            {/* Menu Items Table */}
             <div className="bg-[#22120C] border border-amber-900/40 rounded-2xl p-4 overflow-x-auto">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-xs font-bold text-amber-400 uppercase tracking-wider">
@@ -225,7 +232,9 @@ export default function AdminDashboardModal({ isOpen, onClose }) {
                   <tr className="border-b border-amber-900/40 text-amber-200/60 uppercase text-[10px]">
                     <th className="py-2 px-3">Cake</th>
                     <th className="py-2 px-3">Category</th>
-                    <th className="py-2 px-3">0.5 Kg Price</th>
+                    <th className="py-2 px-3">Pastry</th>
+                    <th className="py-2 px-3">0.5 Kg</th>
+                    <th className="py-2 px-3">1 Kg</th>
                     <th className="py-2 px-3">Stock Status</th>
                     <th className="py-2 px-3 text-right">Actions</th>
                   </tr>
@@ -235,42 +244,44 @@ export default function AdminDashboardModal({ isOpen, onClose }) {
                     <tr key={cake.id} className="hover:bg-[#1a0c08]/50 transition">
                       <td className="py-2.5 px-3 font-bold text-amber-100 flex items-center gap-2">
                         <img src={cake.image} alt={cake.name} className="w-8 h-8 rounded-lg object-cover" />
-                        <span className="truncate max-w-[150px]">{cake.name}</span>
+                        <span className="truncate max-w-[130px]">{cake.name}</span>
                       </td>
                       <td className="py-2.5 px-3 text-amber-200/70">{cake.category || 'General'}</td>
-                      
-                      <td className="py-2.5 px-3 font-bold text-amber-300">
-                        {editingCakeId === cake.id ? (
-                          <div className="flex items-center gap-1">
+
+                      {editingCakeId === cake.id ? (
+                        <>
+                          <td className="py-2.5 px-3">
                             <input
                               type="number"
-                              value={newPrice}
-                              onChange={(e) => setNewPrice(e.target.value)}
-                              placeholder={cake.priceHalfKg}
+                              value={editPrices.pastry}
+                              onChange={(e) => setEditPrices((p) => ({ ...p, pastry: e.target.value }))}
                               className="w-16 bg-[#120805] border border-amber-500 rounded px-1.5 py-0.5 text-xs text-amber-100 focus:outline-none"
                             />
-                            <button
-                              onClick={() => savePrice(cake.id)}
-                              className="px-2 py-0.5 bg-emerald-600 text-white rounded text-[10px] font-bold cursor-pointer"
-                            >
-                              Save
-                            </button>
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-2">
-                            <span>₹{cake.priceHalfKg}</span>
-                            <button
-                              onClick={() => {
-                                setEditingCakeId(cake.id);
-                                setNewPrice(cake.priceHalfKg);
-                              }}
-                              className="text-amber-400/60 hover:text-amber-400 cursor-pointer"
-                            >
-                              <Edit2 className="w-3 h-3" />
-                            </button>
-                          </div>
-                        )}
-                      </td>
+                          </td>
+                          <td className="py-2.5 px-3">
+                            <input
+                              type="number"
+                              value={editPrices.halfKg}
+                              onChange={(e) => setEditPrices((p) => ({ ...p, halfKg: e.target.value }))}
+                              className="w-16 bg-[#120805] border border-amber-500 rounded px-1.5 py-0.5 text-xs text-amber-100 focus:outline-none"
+                            />
+                          </td>
+                          <td className="py-2.5 px-3">
+                            <input
+                              type="number"
+                              value={editPrices.oneKg}
+                              onChange={(e) => setEditPrices((p) => ({ ...p, oneKg: e.target.value }))}
+                              className="w-16 bg-[#120805] border border-amber-500 rounded px-1.5 py-0.5 text-xs text-amber-100 focus:outline-none"
+                            />
+                          </td>
+                        </>
+                      ) : (
+                        <>
+                          <td className="py-2.5 px-3 font-bold text-amber-300">₹{cake.pricePastry}</td>
+                          <td className="py-2.5 px-3 font-bold text-amber-300">₹{cake.priceHalfKg}</td>
+                          <td className="py-2.5 px-3 font-bold text-amber-300">₹{cake.priceOneKg}</td>
+                        </>
+                      )}
 
                       <td className="py-2.5 px-3">
                         <span
@@ -284,7 +295,22 @@ export default function AdminDashboardModal({ isOpen, onClose }) {
                         </span>
                       </td>
 
-                      <td className="py-2.5 px-3 text-right">
+                      <td className="py-2.5 px-3 text-right space-x-1 whitespace-nowrap">
+                        {editingCakeId === cake.id ? (
+                          <button
+                            onClick={() => savePrices(cake.id)}
+                            className="px-3 py-1 bg-emerald-600 text-white rounded-xl text-[10px] font-bold cursor-pointer"
+                          >
+                            Save
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => startEditing(cake)}
+                            className="px-3 py-1 bg-amber-900/40 hover:bg-amber-800/60 text-amber-300 border border-amber-900/40 rounded-xl text-[10px] font-bold cursor-pointer inline-flex items-center gap-1"
+                          >
+                            <Edit2 className="w-3 h-3" /> Edit
+                          </button>
+                        )}
                         <button
                           onClick={() => toggleStock(cake.id)}
                           className={`px-3 py-1 rounded-xl text-[10px] font-bold transition cursor-pointer ${
@@ -293,7 +319,7 @@ export default function AdminDashboardModal({ isOpen, onClose }) {
                               : 'bg-red-900/40 hover:bg-red-800/60 text-red-300 border border-red-900/40'
                           }`}
                         >
-                          {cake.isOutOfStock ? 'Mark Available' : 'Mark Out of Stock'}
+                          {cake.isOutOfStock ? 'Mark Available' : 'Mark Out'}
                         </button>
                       </td>
                     </tr>
