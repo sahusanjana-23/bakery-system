@@ -10,9 +10,9 @@ const app = express();
 
 
 app.use(cors({
-  origin: '*', // Sabhi devices aur domains ko allow karne ke liye
+  origin: '*',
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-admin-key']
 }));
 app.use(express.json());
 app.use('/api/auth', authRoutes);
