@@ -8,7 +8,12 @@ const orderRoutes = require('./src/routes/orderRoutes');
 const adminRoutes = require('./src/routes/adminRoutes');
 const app = express();
 
-app.use(cors());
+
+app.use(cors({
+  origin: '*', // Sabhi devices aur domains ko allow karne ke liye
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/api/orders', orderRoutes);

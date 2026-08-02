@@ -22,7 +22,7 @@ export default function App() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('http://localhost:5000/api/cakes')
+    fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/cakes`)
       .then((res) => res.json())
       .then((result) => {
         if (result.success) {

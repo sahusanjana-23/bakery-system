@@ -7,7 +7,8 @@ export default function CakeCard({ cake, onAddToCart }) {
   const [added, setAdded] = useState(false);
 
   // Determine current price based on weight/size selection
-  const currentPrice = cake.prices ? cake.prices[selectedSize] : 450;
+  const sizeKey = { pastry: 'pricePastry', halfKg: 'priceHalfKg', oneKg: 'priceOneKg' };
+const currentPrice = cake[sizeKey[selectedSize]] || 0;
 
   const handleAdd = (e) => {
     if (e) {
