@@ -9,6 +9,7 @@ import AuthModal from './components/AuthModal';
 import AdminDashboardModal from './components/AdminDashboardModal';
 import { CartProvider } from './context/CartContext';
 import { Search, ArrowUpDown } from 'lucide-react';
+import Testimonials from './components/Testimonials';
 
 export default function App() {
   const [isAdminOpen, setIsAdminOpen] = useState(false);
@@ -137,6 +138,7 @@ export default function App() {
 
         {/* 🎨 Customized Photo & Theme Showcase Section */}
         <CustomizedShowcase />
+        <Testimonials />
 
         {/* About Section */}
         <AboutSection />
