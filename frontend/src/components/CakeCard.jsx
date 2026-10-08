@@ -6,8 +6,35 @@ export default function CakeCard({ cake, onAddToCart }) {
   const [customText, setCustomText] = useState('');
   const [added, setAdded] = useState(false);
 
-  const sizeKey = { pastry: 'pricePastry', halfKg: 'priceHalfKg', oneKg: 'priceOneKg' };
-  const currentPrice = cake[sizeKey[selectedSize]] || 0;
+  // Dynamic price resolver with DB fallback & default fallbacks
+  const getPrice = () => {
+    if (!cake) return 0;
+
+    // 1. Agar size select kiya ho uske multiple DB keys check karo
+    if (selectedSize === 'pastry') {
+      const price = cake.pricePastry || cake.price_pastry || cake.pastryPrice;
+      if (price && Number(price) > 0) return Number(price);
+    }
+
+    if (selectedSize === 'halfKg') {
+      const price = cake.priceHalfKg || cake.price_half_kg || cake.price_500g || cake.halfKgPrice;
+      if (price && Number(price) > 0) return Number(price);
+    }
+
+    if (selectedSize === 'oneKg') {
+      const price = cake.priceOneKg || cake.price_1kg || cake.price_one_kg || cake.oneKgPrice;
+      if (price && Number(price) > 0) return Number(price);
+    }
+
+    // 2. Direct cake.price column check
+    if (cake.price && Number(cake.price) > 0) return Number(cake.price);
+
+    // 3. Last Fallback (Taaki zero na dikhe client ke samne)
+    const defaultPrices = { pastry: 80, halfKg: 350, oneKg: 650 };
+    return defaultPrices[selectedSize] || 350;
+  };
+
+  const currentPrice = getPrice();
 
   const handleAdd = (e) => {
     if (e) {
@@ -15,7 +42,7 @@ export default function CakeCard({ cake, onAddToCart }) {
       e.stopPropagation();
     }
 
-    if (cake.isOutOfStock) return; // safety check
+    if (cake.isOutOfStock) return;
 
     const cartItemPayload = {
       id: `${cake.id}-${selectedSize}`,
